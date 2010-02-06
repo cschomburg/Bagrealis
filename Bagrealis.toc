@@ -1,0 +1,18 @@
+## Interface: 30300
+## Title: Bagrealis
+## Author: Cargor
+## Version: 1.0
+## X-eMail: xconstruct@gmail.com
+## X-Website: http://www.xconstruct.net
+## Notes: Messy bags.
+## SavedVariablesPerCharacter: BagrealisDB
+
+libs\LibStub.lua
+libs\LibDragDrop-1.0.lua
+
+ns.lua
+
+core.lua
+
+itembutton.lua
+container.lua
