@@ -39,13 +39,7 @@ local protos, containers = {}, {}
 Bagrealis.Containers = containers
 
 local defaults = {__index={}}
-
-local bags = setmetatable({}, {__index = function(self, id)
-	local bag = CreateFrame("Frame", nil, Bagrealis)
-	bag:SetID(id)
-	self[id] = bag
-	return bag end
-})
+local bags = setmetatable({}, {__index = function(self, id) self[id] = {}; return self[id] end})
 
 function Bagrealis:Init()
 	self:RegisterEvent"BAG_UPDATE"
@@ -149,9 +143,9 @@ function Bagrealis:GetButton(bagID, slotID)
 	local tpl = getTemplateName(bagID)
 	local button = tremove(recycled[tpl]) or self:GetPrototype("ItemButton").Create(tpl)
 
+	button.bagID = bagID
 	button.ident = bagID*100 + slotID
 	bag[slotID] = button
-	button:SetParent(bag)
 	button:SetID(slotID)
 	button:Show()
 	button:RestoreState()

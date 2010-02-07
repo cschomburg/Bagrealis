@@ -55,6 +55,19 @@ function ItemButton:RestoreState()
 	self:SetAlpha(db[5])
 end
 
+local function preClick(self)
+	self:GetParent():SetID(self.bagID)
+end
+
+local function onEnter(self)
+	self:GetParent():SetID(self.bagID)
+	if(bagID == -1) then
+		BankFrameItemButton_OnEnter(self)
+	else
+		ContainerFrameItemButton_OnEnter(self)
+	end
+end
+
 local slotsNum = 0
 function ItemButton.Create(tpl)
 	slotsNum = slotsNum+1
@@ -80,8 +93,10 @@ function ItemButton.Create(tpl)
 	glow:SetPoint("CENTER", button)
 	button.Glow = glow
 
+	button:SetScript("PreClick", preClick)
 	button:SetScript("OnDragStart", ItemButton.OnDragStart)
 	button:SetScript("OnDragStop", ItemButton.OnDragStop)
+	button:SetScript("OnEnter", onEnter)
 	button:SetScript("OnReceiveDrag", ns.dummy)
 	button:SetScript("OnMouseWheel", ItemButton.OnMouseWheel)
 
