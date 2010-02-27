@@ -4,8 +4,11 @@ if(not lib) then return end
 local env = {}
 local envByObj = {}
 local zonePerObj = {}
+local objPerZone = {}
 local Environment = {}
-local mt_env = {__index = Environment}
+local mt_env = {__index = lib}
+
+lib.zones, lib.objects = {}, {}
 
 function lib.RegisterEnvironment(id)
 	env[id] = setmetatable({zones={}, objects={}}, mt_env)
@@ -16,52 +19,47 @@ function lib.GetEnvironment(id)
 	return env[id]
 end
 
-local anchorDist = {
-	TOP = function(self) return self:GetCenter(), self:GetTop() end,
-	TOPRIGHT = function(self) return self:GetRight(), self:GetTop() end,
-	RIGHT = function(self) return self:GetRight(), select(2, self:GetCenter()) end,
-	BOTTOMRIGHT = function(self) return self:GetRight(), self:GetBottom() end,
-	BOTTOM = function(self) return self:GetCenter(), self:GetBottom() end,
-	BOTTOMLEFT = function(self) return self:GetLeft(), self:GetBottom() end,
-	LEFT = function(self) return self:GetLeft(), select(2, self:GetCenter()) end,
-	TOPLEFT = function(self) return self:GetLeft(), self:GetTop() end,
-	CENTER = function(self) return self:GetCenter() end,
-}
+function lib.ChangeZone(region, target)
+	local eff, tEff = region:GetEffectiveScale(), target:GetEffectiveScale()
+	local newScale = tEff*region:GetScale()
 
-local function getAnchorDistance(self, anchor)
-	local eff = self:GetEffectiveScale()
-	local x, y = anchorDist[anchor](self)
-	return x*eff, y*eff
-end
+	local x, y = region:GetCenter()
+	x, y = x*eff, y*eff
 
-function lib.ChangePoint(region, anchor, target, tAnchor)
-	local _anchor, _target, _tAnchor = region:GetPoint()
-	anchor, target, tAnchor = anchor or _anchor, target or _target or UIParent, tAnchor or _tAnchor
-	local x, y = getAnchorDistance(region, anchor)
-	local tX, tY = getAnchorDistance(target, tAnchor)
-	local scale = region:GetEffectiveScale()
+	local tX, tY = target:GetLeft(), target:GetTop()
+	tX, tY = tX*tEff, tY*tEff
+
+	region:SetParent(target.DropParent or target)
+	region:SetScale(eff/tEff)
 	region:ClearAllPoints()
-	region:SetPoint(anchor, target, tAnchor, (x-tX)/scale, (y-tY)/scale)
+	region:SetPoint("CENTER", target, "TOPLEFT", (x-tX)/eff, (y-tY)/eff)
 end
 
 function lib.IsInRegion(region, x, y)
+	if(type(x) == "table") then
+		x,y = object:GetCenter()
+		local oEff = object:GetEffectiveScale()
+		x,y = x*oEff, y*oEff
+	end
 	local eff = region:GetEffectiveScale()
 	local left, right = region:GetLeft()*eff, region:GetRight()*eff
 	local top, bottom = region:GetTop()*eff, region:GetBottom()*eff
-	debug(x, left, right)
 	return (x > left) and (x < right) and (y < top) and (y > bottom)
 end
 
-function lib.EmbedGeometry(target)
-	target.ChangePoint = lib.ChangePoint
-	target.IsInRegion = lib.IsInRegion
+function lib.GetParentZone(region)
+	return zonePerObj[region]
+end
+
+function lib.GetZoneContents(zone)
+	return objPerZone[zone]
 end
 
 local function safeCall(tbl, func, ...)
 	return tbl[func] and tbl[func](tbl, ...)
 end
 
-local function onMoveStart(object)
+function lib.OnMoveStart(object)
 	local env = envByObj[object]
 	local active = zonePerObj[object]
 
@@ -70,39 +68,43 @@ local function onMoveStart(object)
 		if(zone == active) then
 			safeCall(zone, "DragDrop_Leave", object)
 			zonePerObj[object] = nil
+			objPerZone[active][object] = nil
 		end
 	end
 end
 
-local function onMoveStop(object)
+function lib.OnMoveStop(object)
 	local env = envByObj[object]
 
 	local x,y = object:GetCenter()
 	local eff = object:GetEffectiveScale()
 	x, y = x*eff, y*eff
 
-	local aLevel, aZone = -1
+	local aLevel, active = -1
 
 	for zone in pairs(env.zones) do
 		safeCall(zone, "DragDrop_Stop", object)
-		if(zone ~= object and zone:IsVisible() and zone:GetFrameLevel() > aLevel and lib.IsInRegion(zone, x, y)) then
+		if(zone ~= object and zone:IsVisible() and zone:GetFrameLevel() > aLevel and lib.IsInRegion(zone, x, y) and not(objPerZone[object] and objPerZone[object][zone])) then
 			aLevel = zone:GetFrameLevel()
-			aZone = zone
+			active = zone
 		end
 	end
-	if(aZone) then
-		safeCall(aZone, "DragDrop_Enter", object)
-		zonePerObj[object] = aZone
+	if(active) then
+		safeCall(active, "DragDrop_Enter", object)
+		zonePerObj[object] = active
+		objPerZone[active][object] = true
+		lib.ChangeZone(object, active)
 	end
 end
 
-function Environment:RegisterObject(object)
+function lib:RegisterObject(object)
 	self.objects[object] = true
 	envByObj[object] = self
-	hooksecurefunc(object, "StartMoving", onMoveStart)
-	hooksecurefunc(object, "StopMovingOrSizing", onMoveStop)
+	hooksecurefunc(object, "StartMoving", lib.OnMoveStart)
+	hooksecurefunc(object, "StopMovingOrSizing", lib.OnMoveStop)
 end
 
-function Environment:RegisterZone(zone)
+function lib:RegisterZone(zone)
 	self.zones[zone] = true
+	objPerZone[zone] = {}
 end

@@ -32,8 +32,12 @@ local addon, ns = ...
 
 local Bagrealis = CreateFrame("Button", "Bagrealis", UIParent)
 Bagrealis:SetScript("OnEvent", function(self, event, ...) self[event](self, event, ...) end)
+Bagrealis:SetAllPoints(UIParent)
+Bagrealis:EnableMouse(nil)
+Bagrealis:Hide()
 
 Bagrealis.DragDrop = ns.LDD.RegisterEnvironment(Bagrealis)
+Bagrealis.DragDrop:RegisterZone(Bagrealis)
 
 local protos, containers = {}, {}
 Bagrealis.Containers = containers
@@ -41,10 +45,16 @@ Bagrealis.Containers = containers
 local defaults = {__index={}}
 local bags = setmetatable({}, {__index = function(self, id) self[id] = {}; return self[id] end})
 
+local init = true
 function Bagrealis:Init()
+	init = nil
+
 	self:RegisterEvent"BAG_UPDATE"
 	self:RegisterEvent"ITEM_LOCK_CHANGED"
 	self:RegisterEvent"BAG_UPDATE_COOLDOWN"
+
+	self:SetScript("OnMouseDown", Bagrealis.StartSelecting)
+	self:SetScript("OnMouseUp", Bagrealis.StopSelecting)
 
 	BagrealisDB = BagrealisDB or {}
 	self.db = setmetatable(BagrealisDB, defaults)
@@ -54,8 +64,10 @@ function Bagrealis:Init()
 			local container = self:GetPrototype("Container").Create()
 			container.ident = ident
 			containers[ident] = container
-			container:RestoreState()
 		end
+	end
+	for ident, container in pairs(containers) do
+		container:RestoreState()
 	end
 
 	Bagrealis:BAG_UPDATE()
@@ -78,12 +90,11 @@ local function clearDB(self)
 	end
 end
 
-function Bagrealis:NewPrototype(name, embed)
+function Bagrealis:NewPrototype(name)
 	local proto = setmetatable({}, getmetatable(self))
 	proto.__index, proto._name = proto, name
 	proto.GetDB, proto.ClearDB = getDB, clearDB
 	protos[name] = proto
-	if(embed) then ns.LDD.EmbedGeometry(proto) end
 	return proto
 end
 
@@ -207,3 +218,37 @@ function Bagrealis:UpdateSlot(bagID, slotID)
 	button.Icon:SetDesaturated(locked)
 	CooldownFrame_SetTimer(button.Cooldown, cdStart, cdFinish, cdEnable)
 end
+
+function Bagrealis.Open()
+	if(init) then
+		Bagrealis:Init()
+	end
+	Bagrealis:Show()
+end
+
+function Bagrealis.Close()
+	Bagrealis:Hide()
+end
+
+function Bagrealis.Toggle(forceopen)
+	if(Bagrealis:IsShown() and not forceopen) then
+		Bagrealis.Close()
+	else
+		Bagrealis.Open()
+	end
+end
+
+function Bagrealis:CreateContainer()
+	local container = Bagrealis:GetPrototype("Container").Create()
+	container:SetSize(100, 100)
+	container:SetPoint("CENTER", UIParent)
+	container.ident = time()
+	return container
+end
+
+ToggleBackpack = Bagrealis.Toggle
+ToggleBag = function() Bagrealis.Toggle() end
+OpenAllBags = ToggleBag
+CloseAllBags = Bagrealis.Close
+OpenBackpack = Bagrealis.Open
+CloseBackpack = Bagrealis.Close

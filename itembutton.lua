@@ -1,28 +1,25 @@
 local Bagrealis, addon, ns = Bagrealis, ...
 
-local defaults = setmetatable({
-	nil, 0, 0,
-	1,
-	1,
-}, {__newindex = function() end})
+local ItemButton = Bagrealis:NewPrototype("ItemButton")
 
-local ItemButton = Bagrealis:NewPrototype("ItemButton", true)
-
-ItemButton.OnDragStart = ItemButton.StartMoving
+function ItemButton:OnDragStart()
+	self:StartMoving()
+	GameTooltip:Hide()
+end
 
 function ItemButton:OnDragStop(button)
 	self:StopMovingOrSizing()
-	self:ChangePoint("CENTER", nil, "TOPLEFT")
 	self:SaveState()
 end
 
 function ItemButton:OnMouseWheel(delta)
-	if(IsShiftKeyDown()) then
-		self:SetAlpha(ns.minmax(self:GetAlpha() + delta * 0.1, 0, 1))
+	local speed = delta * (IsShiftKeyDown() and 0.3 or 0.1)
+	if(IsControlKeyDown()) then
+		self:SetAlpha(ns.minmax(self:GetAlpha() + speed, 0, 1))
 	else
 		local a,b,c,d,e = self:GetPoint()
 		local old = self:GetScale()
-		local new = ns.minmax(old + delta * 0.1, 0.1, 3)
+		local new = ns.minmax(old + old * speed, 0.1, 10)
 		d, e = d/new, e/new
 		self:SetScale(new)
 		self:ClearAllPoints()
@@ -34,11 +31,7 @@ end
 function ItemButton:SaveState()
 	local db = self:GetDB(true)
 	local pA, pB, pC, pD, pE = self:GetPoint()
-	if(pB and pB._name == "Container") then
-		pB = pB.ident
-	else
-		pB = nil
-	end
+	pB = pB and pB._name == "Container" and pB.ident
 	local s = self:GetScale()
 	local a = self:GetAlpha()
 	db[1], db[2], db[3] = pB, pD, pE
@@ -46,13 +39,21 @@ function ItemButton:SaveState()
 end
 
 function ItemButton:RestoreState()
-	db = self:GetDB() or defaults
+	db = self:GetDB()
 	self:ClearAllPoints()
 
-	local frame = db[1] and Bagrealis.Containers[db[1]] or UIParent
-	self:SetPoint("CENTER", frame, "TOPLEFT", db[2], db[3])
-	self:SetScale(db[4])
-	self:SetAlpha(db[5])
+	if(db) then
+		local frame = db[1] and Bagrealis.Containers[db[1]] or Bagrealis
+		self:SetParent(frame)
+		self:SetPoint("CENTER", frame, "TOPLEFT", db[2], db[3])
+		self:SetScale(db[4] or 1)
+		self:SetAlpha(db[5] or 1)
+	else
+		self:SetParent(Bagrealis)
+		self:SetPoint("CENTER", Bagrealis, "CENTER")
+		self:SetScale(1)
+		self:SetAlpha(1)
+	end
 end
 
 local function preClick(self)
