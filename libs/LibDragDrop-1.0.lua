@@ -87,16 +87,11 @@ end
 
 function lib.OnMoveStop(object)
 	local env = envByObj[object]
-
-	local x,y = object:GetCenter()
-	local eff = object:GetEffectiveScale()
-	x, y = x*eff, y*eff
-
 	local aLevel, active = -1
 
 	for zone in pairs(env.zones) do
 		safeCall(zone, "DragDrop_Stop", object)
-		if(zone ~= object and zone:IsVisible() and zone:GetFrameLevel() > aLevel and lib.IsInRegion(zone, x, y) and not(objPerZone[object] and objPerZone[object][zone])) then
+		if(zone ~= object and zone:IsVisible() and zone:GetFrameLevel() > aLevel and not(objPerZone[object] and objPerZone[object][zone]) and lib.IntersectsWith(object, zone)) then
 			aLevel = zone:GetFrameLevel()
 			active = zone
 		end

@@ -10,7 +10,7 @@ select:SetBackdrop{
 		tile = true, tileSize = 16, edgeSize = 16,
 		insets = {left = 4, right = 4, top = 4, bottom = 4},
 	}
-select:SetBackdropColor(0, 1, 1, 0.3)
+select:SetBackdropColor(0, 1, 1, 0.1)
 select:SetBackdropBorderColor(0, 1, 1, 1)
 select:Hide()
 
@@ -23,7 +23,7 @@ selectModifier:SetBackdrop{
 		tile = true, tileSize = 16, edgeSize = 16,
 		insets = {left = 4, right = 4, top = 4, bottom = 4},
 	}
-selectModifier:SetBackdropColor(0, 1, 1, 0.3)
+selectModifier:SetBackdropColor(0, 1, 1, 0.1)
 selectModifier:SetBackdropBorderColor(0, 1, 1, 1)
 selectModifier:Hide()
 

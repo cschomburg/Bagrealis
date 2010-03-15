@@ -1,16 +1,23 @@
 local Bagrealis, addon, ns = Bagrealis, ...
 
+local backdrop = {
+	bgFile = [[Interface\AddOns\Bagrealis\textures\background]],
+	edgeFile = [[Interface\AddOns\Bagrealis\textures\border]],
+	edgeSize = 10,
+	insets = {left = 5, right = 5, top = 5, bottom = 5}
+}
+
 local Container = Bagrealis:NewPrototype("Container")
 
 local defaults = {}
 
 local sizer = CreateFrame("Button", nil, UIParent)
-local sizing, activeContainer
+local sizing
 
 local function Sizer_OnLeave()
-	if(not (sizing or sizer:IsMouseOver() or activeContainer:IsMouseOver())) then
+	if(not (sizing or sizer:IsMouseOver() or Bagrealis.ActiveContainer:IsMouseOver())) then
 		sizer:Hide()
-		activeContainer = nil
+		Bagrealis.ActiveContainer = nil
 	end
 end
 
@@ -22,12 +29,12 @@ sizerBG:SetTexture(1, 0, 0, 0.7)
 
 sizer:SetScript("OnMouseDown", function(sizer)
 	sizing = true
-	activeContainer:StartSizing("BOTTOMRIGHT")
+	Bagrealis.ActiveContainer:StartSizing("BOTTOMRIGHT")
 end)
 sizer:SetScript("OnMouseUp", function(sizer)
 	sizing = nil
-	activeContainer:StopMovingOrSizing()
-	activeContainer:SaveState()
+	Bagrealis.ActiveContainer:StopMovingOrSizing()
+	Bagrealis.ActiveContainer:SaveState()
 end)
 sizer:SetScript("OnLeave", Sizer_OnLeave)
 
@@ -38,7 +45,7 @@ sizer:SetScript("OnLeave", Sizer_OnLeave)
 local tempContainers, moving = {}
 
 local function Container_OnMouseDown(self, button)
-	if(button == "RightButton" and IsShiftKeyDown()) then return end
+	if(button == "RightButton") then return end
 
 	if(IsShiftKeyDown()) then
 		Bagrealis:StartSelecting()
@@ -49,8 +56,8 @@ local function Container_OnMouseDown(self, button)
 end
 
 local function Container_OnMouseUp(self, button)
-	if(button == "RightButton" and IsShiftKeyDown()) then
-		return self:Remove()
+	if(button == "RightButton") then
+		return self:DropDown()
 	end
 
 	if(moving) then
@@ -66,7 +73,7 @@ local function Container_OnEnter(self)
 	sizer:Show()
 	sizer:ClearAllPoints()
 	sizer:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT")
-	activeContainer = self
+	Bagrealis.ActiveContainer = self
 end
 
 local function Container_OnMouseWheel(self, delta)
@@ -86,28 +93,28 @@ local function Container_OnMouseWheel(self, delta)
 end
 
 function Container.Create(ident)
-	local button = tremove(tempContainers)
-	if(button) then return button end
+	local container = tremove(tempContainers)
+	if(container) then return button end
 
-	button = setmetatable(CreateFrame("Button", nil, Bagrealis), Container)
-	button:SetMovable(true)
-	button:SetResizable(true)
-	button:SetClampedToScreen(true)
-	button:EnableMouseWheel(true)
-	button:SetScript("OnMouseDown", Container_OnMouseDown)
-	button:SetScript("OnMouseUp", Container_OnMouseUp)
-	button:SetScript("OnEnter", Container_OnEnter)
-	button:SetScript("OnLeave", Sizer_OnLeave)
-	button:SetScript("OnMouseWheel", Container_OnMouseWheel)
+	container = setmetatable(CreateFrame("Button", nil, Bagrealis), Container)
+	container:SetMovable(true)
+	container:SetResizable(true)
+	container:SetClampedToScreen(true)
+	container:EnableMouseWheel(true)
+	container:SetScript("OnMouseDown", Container_OnMouseDown)
+	container:SetScript("OnMouseUp", Container_OnMouseUp)
+	container:SetScript("OnEnter", Container_OnEnter)
+	container:SetScript("OnLeave", Sizer_OnLeave)
+	container:SetScript("OnMouseWheel", Container_OnMouseWheel)
 
-	Bagrealis.DragDrop:RegisterZone(button)
-	Bagrealis.DragDrop:RegisterObject(button)
+	container:SetBackdrop(backdrop)
+	container:SetBackdropColor(0, 0, 0, 0.5)
+	container:SetBackdropBorderColor(0, 0, 0, 0.5)
 
-	local backdrop = button:CreateTexture(nil, "BACKGROUND")
-	backdrop:SetAllPoints()
-	backdrop:SetTexture(0, 0, 0, 0.5)
+	Bagrealis.DragDrop:RegisterZone(container)
+	Bagrealis.DragDrop:RegisterObject(container)
 
-	return button
+	return container
 end
 
 function Container:Remove()

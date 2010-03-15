@@ -247,13 +247,36 @@ Bagrealis:SetScript("OnMouseUp", function(self)
 	self.StopSelecting()
 end)
 
+
+
+
+local configMode
+
+function Bagrealis.IsConfigModeOn()
+	return configMode
+end
+
+function Bagrealis.EnableConfigMode()
+	configMode = true
+	Bagrealis:EnableMouse(true)
+	print("Bagrealis: Config mode enabled!")
+end
+
+function Bagrealis.DisableConfigMode()
+	configMode = nil
+	Bagrealis:EnableMouse(nil)
+	print("Bagrealis: Config mode disabled!")
+end
+
 SlashCmdList.BAGREALIS = function(msg)
-	if(msg == "lock") then
-		Bagrealis:EnableMouse(nil)
-		print("Bagrealis locked!")
-	elseif(msg == "unlock") then
-		Bagrealis:EnableMouse(true)
-		print("Bagrealis unlocked!")
+	if(msg == "config") then
+		if(configMode) then
+			Bagrealis.DisableConfigMode()
+		else
+			Bagrealis.EnableConfigMode()
+		end
+	elseif(msg == "new") then
+		Bagrealis:CreateContainer():SetPoint("CENTER")
 	else
 		Bagrealis.Toggle()
 	end
