@@ -4,23 +4,22 @@ local Container = Bagrealis:NewPrototype("Container")
 
 local defaults = {}
 
+local sizer = CreateFrame("Button", nil, UIParent)
 local sizing, activeContainer
-local function Header_OnLeave(header)
-	if(not (sizing or header:IsMouseOver() or activeContainer:IsMouseOver())) then
-		header:Hide()
+
+local function Sizer_OnLeave()
+	if(not (sizing or sizer:IsMouseOver() or activeContainer:IsMouseOver())) then
+		sizer:Hide()
+		activeContainer = nil
 	end
 end
 
-local header = CreateFrame("Button", nil, Bagrealis)
-header:SetScript("OnLeave", Header_OnLeave)
-header:SetFrameLevel(100)
-
-local headerBG = header:CreateTexture(nil, "BACKGROUND")
-headerBG:SetAllPoints()
-headerBG:SetTexture(0, 0, 0, 0.7)
-
-sizer = CreateFrame("Button", nil, header)
 sizer:SetSize(15, 15)
+sizer:SetFrameLevel(100)
+local sizerBG = sizer:CreateTexture(nil, "BACKGROUND")
+sizerBG:SetAllPoints()
+sizerBG:SetTexture(1, 0, 0, 0.7)
+
 sizer:SetScript("OnMouseDown", function(sizer)
 	sizing = true
 	activeContainer:StartSizing("BOTTOMRIGHT")
@@ -30,15 +29,17 @@ sizer:SetScript("OnMouseUp", function(sizer)
 	activeContainer:StopMovingOrSizing()
 	activeContainer:SaveState()
 end)
+sizer:SetScript("OnLeave", Sizer_OnLeave)
 
-local sizerBG = sizer:CreateTexture(nil, "BACKGROUND")
-sizerBG:SetAllPoints()
-sizerBG:SetTexture(1, 0, 0, 0.7)
+
+
 
 
 local tempContainers, moving = {}
 
-local function Container_OnMouseDown(self)
+local function Container_OnMouseDown(self, button)
+	if(button == "RightButton" and IsShiftKeyDown()) then return end
+
 	if(IsShiftKeyDown()) then
 		Bagrealis:StartSelecting()
 	else
@@ -47,7 +48,11 @@ local function Container_OnMouseDown(self)
 	end
 end
 
-local function Container_OnMouseUp(self)
+local function Container_OnMouseUp(self, button)
+	if(button == "RightButton" and IsShiftKeyDown()) then
+		return self:Remove()
+	end
+
 	if(moving) then
 		moving = nil
 		self:StopMovingOrSizing()
@@ -58,17 +63,10 @@ local function Container_OnMouseUp(self)
 end
 
 local function Container_OnEnter(self)
-	header:Show()
-	header:ClearAllPoints()
-	header:SetPoint("TOPLEFT", self, "TOPLEFT", 0, 10)
-	header:SetPoint("BOTTOMRIGHT", self, "TOPRIGHT")
+	sizer:Show()
 	sizer:ClearAllPoints()
 	sizer:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT")
 	activeContainer = self
-end
-
-local function Container_OnLeave(self)
-	Header_OnLeave(header)
 end
 
 local function Container_OnMouseWheel(self, delta)
@@ -99,7 +97,7 @@ function Container.Create(ident)
 	button:SetScript("OnMouseDown", Container_OnMouseDown)
 	button:SetScript("OnMouseUp", Container_OnMouseUp)
 	button:SetScript("OnEnter", Container_OnEnter)
-	button:SetScript("OnLeave", Container_OnLeave)
+	button:SetScript("OnLeave", Sizer_OnLeave)
 	button:SetScript("OnMouseWheel", Container_OnMouseWheel)
 
 	Bagrealis.DragDrop:RegisterZone(button)
@@ -116,6 +114,7 @@ function Container:Remove()
 	assert(not next(Bagrealis.DragDrop.GetZoneContents(self)), "Container is not empty!")
 
 	self:ClearDB()
+	sizer:Hide()
 	self:Hide()
 	tinsert(tempContainers, self)
 end

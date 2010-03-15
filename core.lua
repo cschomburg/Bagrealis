@@ -8,7 +8,7 @@
     the Free Software Foundation, either version 2 of the License, or
     (at your option) any later version.
 
-    cargBags is distributed in the hope that it will be useful,
+    Bagrealis is distributed in the hope that it will be useful,
     but WITHOUT ANY WARRANTY; without even the implied warranty of
     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
     GNU General Public License for more details.
@@ -16,17 +16,6 @@
     You should have received a copy of the GNU General Public License
     along with Bagrealis.  If not, see <http://www.gnu.org/licenses/>.
 ]]
-
---[[*********************************
-	0.	Table of Contents
-	1.	Main routine
-	2.	Button functions
-***********************************]]
-
-
---[[*********************************
-	1.	Main routine
-***********************************]]
 
 local addon, ns = ...
 
@@ -52,9 +41,6 @@ function Bagrealis:Init()
 	self:RegisterEvent"BAG_UPDATE"
 	self:RegisterEvent"ITEM_LOCK_CHANGED"
 	self:RegisterEvent"BAG_UPDATE_COOLDOWN"
-
-	self:SetScript("OnMouseDown", Bagrealis.StartSelecting)
-	self:SetScript("OnMouseUp", Bagrealis.StopSelecting)
 
 	BagrealisDB = BagrealisDB or {}
 	self.db = setmetatable(BagrealisDB, defaults)
@@ -241,10 +227,39 @@ end
 function Bagrealis:CreateContainer()
 	local container = Bagrealis:GetPrototype("Container").Create()
 	container:SetSize(100, 100)
-	container:SetPoint("CENTER", UIParent)
 	container.ident = time()
 	return container
 end
+
+Bagrealis:SetScript("OnMouseDown", function(self, button)
+	if(button == "LeftButton") then
+		self.StopSelecting()
+		self.StartSelecting()
+	else
+		local x, y = GetCursorPosition()
+		local eff = self:GetEffectiveScale()
+		local container = Bagrealis:CreateContainer()
+		container:SetPoint("CENTER", self, "BOTTOMLEFT", x/eff, y/eff)
+	end
+end)
+
+Bagrealis:SetScript("OnMouseUp", function(self)
+	self.StopSelecting()
+end)
+
+SlashCmdList.BAGREALIS = function(msg)
+	if(msg == "lock") then
+		Bagrealis:EnableMouse(nil)
+		print("Bagrealis locked!")
+	elseif(msg == "unlock") then
+		Bagrealis:EnableMouse(true)
+		print("Bagrealis unlocked!")
+	else
+		Bagrealis.Toggle()
+	end
+end
+SLASH_BAGREALIS1 = "/bagrealis"
+SLASH_BAGREALIS2 = "/bag"
 
 ToggleBackpack = Bagrealis.Toggle
 ToggleBag = function() Bagrealis.Toggle() end
