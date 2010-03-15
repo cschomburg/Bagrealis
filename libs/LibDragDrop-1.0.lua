@@ -29,7 +29,7 @@ function lib.ChangeZone(region, target)
 	local tX, tY = target:GetLeft(), target:GetTop()
 	tX, tY = tX*tEff, tY*tEff
 
-	region:SetParent(target.DropParent or target)
+	region:SetParent(target)
 	region:SetScale(eff/tEff)
 	region:ClearAllPoints()
 	region:SetPoint("CENTER", target, "TOPLEFT", (x-tX)/eff, (y-tY)/eff)
@@ -47,12 +47,24 @@ function lib.IsInRegion(region, x, y)
 	return (x > left) and (x < right) and (y < top) and (y > bottom)
 end
 
+function lib.IntersectsWith(regionA, regionB)
+	local aEff, bEff = regionA:GetEffectiveScale(), regionB:GetEffectiveScale();
+	return	((regionA:GetLeft()*aEff) < (regionB:GetRight()*bEff))
+		and ((regionB:GetLeft()*bEff) < (regionA:GetRight()*aEff))
+		and ((regionA:GetBottom()*aEff) < (regionB:GetTop()*bEff))
+		and ((regionB:GetBottom()*bEff) < (regionA:GetTop()*aEff))
+end
+
 function lib.GetParentZone(region)
 	return zonePerObj[region]
 end
 
 function lib.GetZoneContents(zone)
 	return objPerZone[zone]
+end
+
+function lib.InsertIntoZone(zone, object)
+	objPerZone[zone][object] = true
 end
 
 local function safeCall(tbl, func, ...)
