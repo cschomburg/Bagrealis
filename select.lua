@@ -74,7 +74,7 @@ function select.Stop()
 			selections[object] = true
 			selCount = selCount + 1
 			DragDrop.OnMoveStart(object)
-			DragDrop.ChangeZone(object, selectModifier)
+			DragDrop.ChangeParent(object, selectModifier)
 			object:SetFrameLevel(99)
 		end
 	end

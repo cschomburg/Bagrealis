@@ -19,7 +19,7 @@ function lib.GetEnvironment(id)
 	return env[id]
 end
 
-function lib.ChangeZone(region, target)
+function lib.ChangeParent(region, target)
 	local eff, tEff = region:GetEffectiveScale(), target:GetEffectiveScale()
 	local newScale = tEff*region:GetScale()
 
@@ -55,16 +55,26 @@ function lib.IntersectsWith(regionA, regionB)
 		and ((regionB:GetBottom()*bEff) < (regionA:GetTop()*aEff))
 end
 
-function lib.GetParentZone(region)
-	return zonePerObj[region]
+function lib.GetParentZone(object)
+	return zonePerObj[object]
 end
 
 function lib.GetZoneContents(zone)
 	return objPerZone[zone]
 end
 
-function lib.InsertIntoZone(zone, object)
+function lib.InsertIntoZone(object, zone)
+	lib.RemoveFromZone(object)
 	objPerZone[zone][object] = true
+	zonePerObj[object] = zone
+end
+
+function lib.RemoveFromZone(object)
+	local zone = zonePerObj[object]
+	if(zone) then
+		objPerZone[zone][object] = nil
+		zonePerObj[object] = nil
+	end
 end
 
 local function safeCall(tbl, func, ...)
@@ -75,12 +85,12 @@ function lib.OnMoveStart(object)
 	local env = envByObj[object]
 	local active = zonePerObj[object]
 
+	lib.RemoveFromZone(object)
+
 	for zone in pairs(env.zones) do
 		safeCall(zone, "DragDrop_Start", object)
 		if(zone == active) then
 			safeCall(zone, "DragDrop_Leave", object)
-			zonePerObj[object] = nil
-			objPerZone[active][object] = nil
 		end
 	end
 end
@@ -98,9 +108,8 @@ function lib.OnMoveStop(object)
 	end
 	if(active) then
 		safeCall(active, "DragDrop_Enter", object)
-		zonePerObj[object] = active
-		objPerZone[active][object] = true
-		lib.ChangeZone(object, active)
+		lib.InsertIntoZone(object, active)
+		lib.ChangeParent(object, active)
 	end
 end
 

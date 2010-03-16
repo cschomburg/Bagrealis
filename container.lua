@@ -118,6 +118,7 @@ end
 function Container:Remove()
 	assert(not next(Bagrealis.DragDrop.GetZoneContents(self)), "Container is not empty!")
 
+	Bagrealis.DragDrop.RemoveFromZone(self)
 	self:ClearDB()
 	sizer:Hide()
 	self:Hide()
@@ -146,7 +147,7 @@ function Container:RestoreState()
 	self:ClearAllPoints()
 
 	local frame = db[1] and Bagrealis.Containers[db[1]] or Bagrealis
-	Bagrealis.DragDrop.InsertIntoZone(frame, self)
+	Bagrealis.DragDrop.InsertIntoZone(self, frame)
 	self:SetParent(frame)
 	self:SetPoint("CENTER", frame, "TOPLEFT", db[2], db[3])
 	self:SetScale(db[4])

@@ -44,7 +44,7 @@ function ItemButton:RestoreState()
 
 	if(db) then
 		local frame = db[1] and Bagrealis.Containers[db[1]] or Bagrealis
-		Bagrealis.DragDrop.InsertIntoZone(frame, self)
+		Bagrealis.DragDrop.InsertIntoZone(self, frame)
 		self:SetParent(frame)
 		self:SetPoint("CENTER", frame, "TOPLEFT", db[2], db[3])
 		self:SetScale(db[4] or 1)

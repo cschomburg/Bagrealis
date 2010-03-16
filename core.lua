@@ -154,6 +154,7 @@ function Bagrealis:RemoveSlot(bagID, slotID)
 	local button = bags[bagID][slotID]
 	bags[bagID][slotID] = nil
 
+	Bagrealis.DragDrop.RemoveFromZone(button)
 	button:ClearDB()
 	button.id = nil
 	button.ident = nil
