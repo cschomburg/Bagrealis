@@ -2,29 +2,23 @@ local Bagrealis, addon, ns = Bagrealis, ...
 local DragDrop = Bagrealis.DragDrop
 
 local select = CreateFrame("Frame", nil, Bagrealis)
+Bagrealis.Selector = select
+
 select:SetResizable(true)
 select:SetFrameLevel(100)
-select:SetBackdrop{
-		bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-		edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-		tile = true, tileSize = 16, edgeSize = 16,
-		insets = {left = 4, right = 4, top = 4, bottom = 4},
-	}
-select:SetBackdropColor(0, 1, 1, 0.1)
-select:SetBackdropBorderColor(0, 1, 1, 1)
+select:SetBackdrop(Bagrealis.Config.Selector.Backdrop)
+select:SetBackdropColor(unpack(Bagrealis.Config.Selector.BackdropColor))
+select:SetBackdropBorderColor(unpack(Bagrealis.Config.Selector.BorderColor))
 select:Hide()
 
 local selectModifier = CreateFrame("Button", nil, Bagrealis)
+select.Modifier = selectModifier
+
 selectModifier:SetMovable(true)
 selectModifier:EnableMouseWheel(true)
-selectModifier:SetBackdrop{
-		bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-		edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-		tile = true, tileSize = 16, edgeSize = 16,
-		insets = {left = 4, right = 4, top = 4, bottom = 4},
-	}
-selectModifier:SetBackdropColor(0, 1, 1, 0.1)
-selectModifier:SetBackdropBorderColor(0, 1, 1, 1)
+selectModifier:SetBackdrop(Bagrealis.Config.Selector.Backdrop)
+selectModifier:SetBackdropColor(unpack(Bagrealis.Config.Selector.BackdropColor))
+selectModifier:SetBackdropBorderColor(unpack(Bagrealis.Config.Selector.BorderColor))
 selectModifier:Hide()
 
 selectModifier:SetScript("OnMouseDown", function(self, button)
@@ -35,7 +29,7 @@ end)
 
 selectModifier:SetScript("OnMouseUp", function(self, button)
 	if(button == "RightButton") then
-		Bagrealis.ClearSelection()
+		Bagrealis.DropDown:Open(self)
 	else
 		self:StopMovingOrSizing()
 	end
@@ -55,7 +49,7 @@ end)
 local selections, selCount = {}
 local sX, sY, fX, fY
 
-function Bagrealis:StartSelecting()
+function select.Start()
 	local x, y = GetCursorPosition()
 	local eff = select:GetEffectiveScale()
 
@@ -64,8 +58,8 @@ function Bagrealis:StartSelecting()
 	select:Show()
 end
 
-function Bagrealis.StopSelecting()
-	if(not select:IsShown() or select:GetWidth() == 0) then return Bagrealis.ClearSelection() end
+function select.Stop()
+	if(not select:IsShown() or select:GetWidth() == 0) then return select.Clear() end
 
 	select:Hide()
 	selectModifier:ClearAllPoints()
@@ -86,11 +80,11 @@ function Bagrealis.StopSelecting()
 	end
 
 	if(selCount == 0) then
-		Bagrealis.ClearSelection()
+		select.Clear()
 	end
 end
 
-function Bagrealis.ClearSelection()
+function select.Clear()
 	for object in pairs(selections) do
 		DragDrop.OnMoveStop(object)
 		object:SaveState()
@@ -100,7 +94,7 @@ function Bagrealis.ClearSelection()
 	selectModifier:SetScale(1)
 end
 
-select:SetScript("OnMouseUp", Bagrealis.StopSelecting)
+select:SetScript("OnMouseUp", select.Stop)
 select:SetScript("OnUpdate", function(self)
 	local x,y = GetCursorPosition()
 	local eff = self:GetEffectiveScale()
@@ -114,28 +108,16 @@ select:SetScript("OnUpdate", function(self)
 	end
 end)
 
-local function doLayout(self)
-	if(self:GetText() == "Grid") then
-		Bagrealis.Layouts.Grid(selectModifier, selections, columns or selCount^0.5, spacing)
-	elseif(self:GetText() == "Stack") then
-		Bagrealis.Layouts.Stack(selectModifier, selections)
-	end
-end
-
-for i, type in ipairs{"Grid", "Stack"} do
-	local button = CreateFrame("Button", nil, selectModifier)
-	button:SetPoint("TOPLEFT", selectModifier, "TOPRIGHT", 0, -5-(i-1)*30)
-	button:SetSize(50, 30)
-	button:SetNormalFontObject(GameFontHighlight)
-	button:SetHighlightFontObject(GameFontNormal)
-	button:SetText(type)
-	button:SetBackdrop{
-			bgFile = "Interface\\ChatFrame\\ChatFrameBackground",
-			edgeFile = "Interface\\Tooltips\\UI-Tooltip-Border",
-			tile = true, tileSize = 16, edgeSize = 16,
-			insets = {left = 4, right = 4, top = 4, bottom = 4},
-		}
-	button:SetBackdropColor(0, 1, 1, 0.3)
-	button:SetBackdropBorderColor(0, 1, 1, 1)
-	button:SetScript("OnClick", doLayout)
-end
+selectModifier.DropDownEntries = {
+	{
+		text = "Layout in Grid",
+		func = function() Bagrealis.Layouts.Grid(selectModifier, selections, selCount^0.5) end,
+	},{
+		text = "Layout in Stack",
+		func = function() Bagrealis.Layouts.Stack(selectModifier, selections) end,
+	},
+	{
+		text = "Clear selection",
+		func = select.Clear,
+	}
+}

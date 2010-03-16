@@ -224,7 +224,7 @@ function Bagrealis.Toggle(forceopen)
 	end
 end
 
-function Bagrealis:CreateContainer()
+function Bagrealis.CreateContainer()
 	local container = Bagrealis:GetPrototype("Container").Create()
 	container:SetSize(100, 100)
 	container.ident = time()
@@ -233,21 +233,20 @@ end
 
 Bagrealis:SetScript("OnMouseDown", function(self, button)
 	if(button == "LeftButton") then
-		self.StopSelecting()
-		self.StartSelecting()
-	else
-		local x, y = GetCursorPosition()
-		local eff = self:GetEffectiveScale()
-		local container = Bagrealis:CreateContainer()
-		container:SetPoint("CENTER", self, "BOTTOMLEFT", x/eff, y/eff)
+		self.Selector:Stop()
+		self.Selector:Start()
 	end
 end)
 
-Bagrealis:SetScript("OnMouseUp", function(self)
-	self.StopSelecting()
+Bagrealis:SetScript("OnMouseUp", function(self, button)
+	if(button == "LeftButton") then
+		self.Selector:Stop()
+	else
+		local x, y = GetCursorPosition()
+		local eff = self:GetEffectiveScale()
+		Bagrealis:CreateContainer():SetPoint("CENTER", self, "BOTTOMLEFT", x/eff, y/eff)
+	end	
 end)
-
-
 
 
 local configMode

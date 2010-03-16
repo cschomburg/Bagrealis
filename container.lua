@@ -1,12 +1,5 @@
 local Bagrealis, addon, ns = Bagrealis, ...
 
-local backdrop = {
-	bgFile = [[Interface\AddOns\Bagrealis\textures\background]],
-	edgeFile = [[Interface\AddOns\Bagrealis\textures\border]],
-	edgeSize = 10,
-	insets = {left = 5, right = 5, top = 5, bottom = 5}
-}
-
 local Container = Bagrealis:NewPrototype("Container")
 
 local defaults = {}
@@ -42,22 +35,22 @@ sizer:SetScript("OnLeave", Sizer_OnLeave)
 
 
 
-local tempContainers, moving = {}
+local moving
 
-local function Container_OnMouseDown(self, button)
+function Container:OnMouseDown(button)
 	if(button == "RightButton") then return end
 
 	if(IsShiftKeyDown()) then
-		Bagrealis:StartSelecting()
+		Bagrealis.Selector:Start()
 	else
 		moving = true
 		self:StartMoving()
 	end
 end
 
-local function Container_OnMouseUp(self, button)
+function Container:OnMouseUp(button)
 	if(button == "RightButton") then
-		return self:DropDown()
+		return Bagrealis.DropDown:Open(self)
 	end
 
 	if(moving) then
@@ -65,18 +58,18 @@ local function Container_OnMouseUp(self, button)
 		self:StopMovingOrSizing()
 		self:SaveState()
 	else
-		Bagrealis:StopSelecting()
+		Bagrealis.Selector:Stop()
 	end
 end
 
-local function Container_OnEnter(self)
+function Container:OnEnter()
 	sizer:Show()
 	sizer:ClearAllPoints()
 	sizer:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT")
 	Bagrealis.ActiveContainer = self
 end
 
-local function Container_OnMouseWheel(self, delta)
+function Container:OnMouseWheel(delta)
 	local speed = delta * (IsShiftKeyDown() and 0.3 or 0.1)
 	if(IsControlKeyDown()) then
 		self:SetAlpha(ns.minmax(self:GetAlpha() + speed, 0, 1))
@@ -92,7 +85,12 @@ local function Container_OnMouseWheel(self, delta)
 	self:SaveState()
 end
 
-function Container.Create(ident)
+
+
+
+
+local tempContainers = {}
+function Container.Create()
 	local container = tremove(tempContainers)
 	if(container) then return button end
 
@@ -101,15 +99,15 @@ function Container.Create(ident)
 	container:SetResizable(true)
 	container:SetClampedToScreen(true)
 	container:EnableMouseWheel(true)
-	container:SetScript("OnMouseDown", Container_OnMouseDown)
-	container:SetScript("OnMouseUp", Container_OnMouseUp)
-	container:SetScript("OnEnter", Container_OnEnter)
+	container:SetScript("OnMouseDown", Container.OnMouseDown)
+	container:SetScript("OnMouseUp", Container.OnMouseUp)
+	container:SetScript("OnEnter", Container.OnEnter)
 	container:SetScript("OnLeave", Sizer_OnLeave)
-	container:SetScript("OnMouseWheel", Container_OnMouseWheel)
+	container:SetScript("OnMouseWheel", Container.OnMouseWheel)
 
-	container:SetBackdrop(backdrop)
-	container:SetBackdropColor(0, 0, 0, 0.5)
-	container:SetBackdropBorderColor(0, 0, 0, 0.5)
+	container:SetBackdrop(Bagrealis.Config.Container.Backdrop)
+	container:SetBackdropColor(unpack(Bagrealis.Config.Container.BackdropColor))
+	container:SetBackdropBorderColor(unpack(Bagrealis.Config.Container.BorderColor))
 
 	Bagrealis.DragDrop:RegisterZone(container)
 	Bagrealis.DragDrop:RegisterObject(container)
@@ -123,6 +121,7 @@ function Container:Remove()
 	self:ClearDB()
 	sizer:Hide()
 	self:Hide()
+	self.ident = nil
 	tinsert(tempContainers, self)
 end
 
@@ -154,3 +153,10 @@ function Container:RestoreState()
 	self:SetAlpha(db[5])
 	self:SetSize(db[6], db[7])
 end
+
+Container.DropDownEntries = {
+	{
+		text = "Remove Container",
+		func = function() Bagrealis.DropDown.Selected:Remove() end,
+	},
+}

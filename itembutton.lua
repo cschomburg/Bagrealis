@@ -39,7 +39,7 @@ function ItemButton:SaveState()
 end
 
 function ItemButton:RestoreState()
-	db = self:GetDB()
+	local db = self:GetDB()
 	self:ClearAllPoints()
 
 	if(db) then

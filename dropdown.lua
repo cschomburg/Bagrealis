@@ -1,39 +1,35 @@
 local Bagrealis, addon, ns = Bagrealis, ...
-local Container = Bagrealis:GetPrototype("Container")
 
-local dropdown, selectedContainer
+local DropDown = CreateFrame("Frame", "BagrealisDropDown", UIParent, "UIDropDownMenuTemplate")
+Bagrealis.DropDown = DropDown
 
-local function removeActive()
-	selectedContainer:Remove()
+local info, init = {}, true
+
+local function addEntry(name, func)
+	info.text, info.func = name, func
+	UIDropDownMenu_AddButton(info)
 end
 
 local function update()
-	local info = {}
+	for i, entry in ipairs(DropDown.Selected.DropDownEntries) do
+		UIDropDownMenu_AddButton(entry)
+	end
+
+	addEntry()
 
 	if(Bagrealis:IsConfigModeOn()) then
-		info.text = "Disable Config Mode"
-		info.func = Bagrealis.DisableConfigMode
+		addEntry("Disable Config Mode", Bagrealis.DisableConfigMode)
 	else
-		info.text = "Enable Config Mode"
-		info.func = Bagrealis.EnableConfigMode
+		addEntry("Enable Config Mode", Bagrealis.EnableConfigMode)
 	end
-	UIDropDownMenu_AddButton(info)
-
-	
-	info.text = "Remove container"
-	info.func = removeActive
-	UIDropDownMenu_AddButton(info)
 end
 
-local function createDropDown()
-	dropdown = CreateFrame("Frame", "BagrealisDropDown", UIParent, "UIDropDownMenuTemplate")
-	dropdown:SetID(1)
-	UIDropDownMenu_Initialize(dropdown, update, "MENU")
-	UIDropDownMenu_SetWidth(dropdown, 90)
-	return dropdown
-end
-
-function Container:DropDown()
-	selectedContainer = self
-	ToggleDropDownMenu(1, nil, dropdown or createDropDown(), self, 0, 0)
+function DropDown:Open(frame)
+	self.Selected = frame
+	if(init) then
+		DropDown:SetID(1)
+		UIDropDownMenu_Initialize(DropDown, update, "MENU")
+		UIDropDownMenu_SetWidth(DropDown, 90)
+	end
+	ToggleDropDownMenu(1, nil, self, frame, 0, 0)
 end
