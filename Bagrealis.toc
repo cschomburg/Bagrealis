@@ -9,11 +9,13 @@
 
 libs\LibStub.lua
 libs\LibDragDrop-1.0.lua
+libs\LibFx-1.1\LibFx-1.1.lua
 
 ns.lua
 
 core.lua
 config.lua
+anim.lua
 
 layouts.lua
 select.lua
