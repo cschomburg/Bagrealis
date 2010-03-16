@@ -74,7 +74,7 @@ local slotsNum = 0
 function ItemButton.Create(tpl)
 	slotsNum = slotsNum+1
 
-	button = setmetatable(CreateFrame("Button", "BagrealisSlot"..slotsNum, Bagrealis, tpl), ItemButton)
+	local button = setmetatable(CreateFrame("Button", "BagrealisSlot"..slotsNum, Bagrealis, tpl), ItemButton)
 	Bagrealis.DragDrop:RegisterObject(button)
 
 	button:SetWidth(37)

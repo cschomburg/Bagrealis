@@ -92,7 +92,7 @@ end
 local tempContainers = {}
 function Container.Create()
 	local container = tremove(tempContainers)
-	if(container) then return button end
+	if(container) then return container end
 
 	container = setmetatable(CreateFrame("Button", nil, Bagrealis), Container)
 	container:SetMovable(true)
