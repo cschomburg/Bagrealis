@@ -115,8 +115,11 @@ selectModifier.DropDownEntries = {
 	},{
 		text = "Layout in Stack",
 		func = function() Bagrealis.Layouts.Stack(selectModifier, selections) end,
-	},
-	{
+	},{
+		text = "Layout in Circle",
+		func = function() Bagrealis.Layouts.Circle(selectModifier, selections, selCount) end,
+	},{
+	},{
 		text = "Clear selection",
 		func = select.Clear,
 	}

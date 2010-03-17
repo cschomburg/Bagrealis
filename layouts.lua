@@ -39,3 +39,23 @@ function layouts:Stack(objects)
 		end
 	end
 end
+
+function layouts:Circle(objects, numObjects)
+	local radius = (numObjects*50)/math.pi/2
+
+	local i=1
+	for object in pairs(objects) do
+		object:SetScale(1)
+
+		local a = 360/numObjects*i
+		local x = radius*cos(a)
+		local y = -radius*sin(a)
+
+		if(Bagrealis.Config.Animations) then
+			Bagrealis.Anims.Move(object, self, radius+x, y-radius)
+		else
+			object:SetPoint("TOPLEFT", self, "TOPLEFT", radius+x, y-radius)
+		end
+		i = i+1
+	end
+end
