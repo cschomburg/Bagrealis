@@ -1,7 +1,7 @@
 ## Interface: 30300
 ## Title: Bagrealis
 ## Author: Cargor
-## Version: 1.0
+## Version: 0.2
 ## X-eMail: xconstruct@gmail.com
 ## X-Website: http://www.xconstruct.net
 ## Notes: Messy bags.
@@ -11,15 +11,16 @@ libs\LibStub.lua
 libs\LibDragDrop-1.0.lua
 libs\LibFx-1.1\LibFx-1.1.lua
 
-ns.lua
-
 core.lua
-config.lua
+main.lua
 anim.lua
-
+configMode.lua
 layouts.lua
 select.lua
-
 itembutton.lua
 container.lua
 dropdown.lua
+
+config.lua
+
+tutorial.lua

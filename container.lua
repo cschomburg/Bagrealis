@@ -1,16 +1,36 @@
-local Bagrealis, addon, ns = Bagrealis, ...
+--[[
+    Copyright (C) 2009  Constantin Schomburg
 
-local Container = Bagrealis:NewPrototype("Container")
+    This file is part of Bagrealis.
 
-local defaults = {}
+    Bagrealis is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 2 of the License, or
+    (at your option) any later version.
 
-local sizer = CreateFrame("Button", nil, UIParent)
+    Bagrealis is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with Bagrealis.  If not, see <http://www.gnu.org/licenses/>.
+]]
+
+local Bagrealis = Bagrealis
+
+local Container = setmetatable({}, Bagrealis.DefaultButton)
+Bagrealis.Container = Container
+Container.__index = Container
+Container.class = "Container"
+
+local sizer = CreateFrame("Button", nil, Bagrealis.MainFrame)
 local sizing
 
 local function Sizer_OnLeave()
-	if(not (sizing or sizer:IsMouseOver() or Bagrealis.ActiveContainer:IsMouseOver())) then
+	if(not (sizing or sizer:IsMouseOver() or Container.Hovered:IsMouseOver())) then
 		sizer:Hide()
-		Bagrealis.ActiveContainer = nil
+		Container.Hovered = nil
 	end
 end
 
@@ -22,12 +42,12 @@ sizerBG:SetTexture(1, 0, 0, 0.7)
 
 sizer:SetScript("OnMouseDown", function(sizer)
 	sizing = true
-	Bagrealis.ActiveContainer:StartSizing("BOTTOMRIGHT")
+	Container.Hovered:StartSizing("BOTTOMRIGHT")
 end)
 sizer:SetScript("OnMouseUp", function(sizer)
 	sizing = nil
-	Bagrealis.ActiveContainer:StopMovingOrSizing()
-	Bagrealis.ActiveContainer:SaveState()
+	Container.Hovered:StopMovingOrSizing()
+	Container.Hovered:SaveState()
 end)
 sizer:SetScript("OnLeave", Sizer_OnLeave)
 
@@ -38,27 +58,27 @@ sizer:SetScript("OnLeave", Sizer_OnLeave)
 local moving
 
 function Container:OnMouseDown(button)
-	if(button == "RightButton") then return end
+	local action = self:GetUserAction(button)
 
-	if(IsShiftKeyDown()) then
+	if(action == "selector") then
 		Bagrealis.Selector:Start()
-	else
+	elseif(action == "move" and not self.maximized) then
 		moving = true
 		self:StartMoving()
 	end
 end
 
 function Container:OnMouseUp(button)
-	if(button == "RightButton") then
-		return Bagrealis.DropDown:Open(self)
-	end
+	local action = self:GetUserAction(button)
 
-	if(moving) then
+	if(action == "selector") then
+		Bagrealis.Selector:Stop()
+	elseif(action == "dropdown") then
+		Bagrealis.DropDown:Open(self)
+	elseif(action == "move" and not self.maximized) then
 		moving = nil
 		self:StopMovingOrSizing()
 		self:SaveState()
-	else
-		Bagrealis.Selector:Stop()
 	end
 end
 
@@ -66,23 +86,25 @@ function Container:OnEnter()
 	sizer:Show()
 	sizer:ClearAllPoints()
 	sizer:SetPoint("BOTTOMRIGHT", self, "BOTTOMRIGHT")
-	Bagrealis.ActiveContainer = self
+	Container.Hovered = self
 end
 
 function Container:OnMouseWheel(delta)
-	local speed = delta * (IsShiftKeyDown() and 0.3 or 0.1)
-	if(IsControlKeyDown()) then
-		self:SetAlpha(ns.minmax(self:GetAlpha() + speed, 0, 1))
-	else
+	local action = self:GetUserAction("Wheel")
+
+	if(action == "alpha" and not self.maximized) then
+		self:SetAlpha(Bagrealis.minmax(self:GetAlpha() + delta*0.1, 0, 1))
+		self:SaveState()
+	elseif(action == "scale" and not self.maximized) then
 		local a,b,c,d,e = self:GetPoint()
 		local old = self:GetScale()
-		local new = ns.minmax(old + old * speed, 0.1, 10)
+		local new = Bagrealis.minmax(old + old * delta*0.1, 0.1, 10)
 		d, e = d/new, e/new
 		self:SetScale(new)
 		self:ClearAllPoints()
 		self:SetPoint(a,b,c, d*old, e*old)
+		self:SaveState()
 	end
-	self:SaveState()
 end
 
 
@@ -90,38 +112,48 @@ end
 
 
 local tempContainers = {}
-function Container.Create()
+function Container.Get(ident)
 	local container = tremove(tempContainers)
-	if(container) then return container end
 
-	container = setmetatable(CreateFrame("Button", nil, Bagrealis), Container)
-	container:SetMovable(true)
-	container:SetResizable(true)
-	container:SetClampedToScreen(true)
-	container:EnableMouseWheel(true)
-	container:SetScript("OnMouseDown", Container.OnMouseDown)
-	container:SetScript("OnMouseUp", Container.OnMouseUp)
-	container:SetScript("OnEnter", Container.OnEnter)
-	container:SetScript("OnLeave", Sizer_OnLeave)
-	container:SetScript("OnMouseWheel", Container.OnMouseWheel)
+	if(not container) then
+		local config = Container:GetConfig()
 
-	container:SetBackdrop(Bagrealis.Config.Container.Backdrop)
-	container:SetBackdropColor(unpack(Bagrealis.Config.Container.BackdropColor))
-	container:SetBackdropBorderColor(unpack(Bagrealis.Config.Container.BorderColor))
+		container = setmetatable(CreateFrame("Button"), Container)
+		container.ident = ident
 
-	Bagrealis.DragDrop:RegisterZone(container)
-	Bagrealis.DragDrop:RegisterObject(container)
+		container:SetMovable(true)
+		container:SetResizable(true)
+		container:SetClampedToScreen(true)
+		container:EnableMouseWheel(true)
+		container:SetScript("OnMouseDown", Container.OnMouseDown)
+		container:SetScript("OnMouseUp", Container.OnMouseUp)
+		container:SetScript("OnEnter", Container.OnEnter)
+		container:SetScript("OnLeave", Sizer_OnLeave)
+		container:SetScript("OnMouseWheel", Container.OnMouseWheel)
+
+		container:SetBackdrop(config.Backdrop)
+		container:SetBackdropColor(unpack(config.BackdropColor))
+		container:SetBackdropBorderColor(unpack(config.BorderColor))
+
+		Bagrealis:RegisterZone(container)
+		Bagrealis:RegisterObject(container)
+	end
+
+	container.ident = ident
+	container:Show()
 
 	return container
 end
 
 function Container:Remove()
-	assert(not next(Bagrealis.DragDrop.GetZoneContents(self)), "Container is not empty!")
+	assert(not next(Bagrealis.GetZoneContents(self)), "Container is not empty!")
 
-	Bagrealis.DragDrop.RemoveFromZone(self)
-	self:ClearDB()
+	Bagrealis.RemoveFromZone(self)
 	sizer:Hide()
+
+	self:ClearDB()
 	self:Hide()
+
 	self.ident = nil
 	tinsert(tempContainers, self)
 end
@@ -129,11 +161,7 @@ end
 function Container:SaveState()
 	local db = self:GetDB(true)
 	local pA, pB, pC, pD, pE = self:GetPoint()
-	if(pB and pB._name == "Container") then
-		pB = pB.ident
-	else
-		pB = nil
-	end
+	pB = pB and pB.class == "Container" and pB.ident or nil
 	local s = self:GetScale()
 	local a = self:GetAlpha()
 	local w, h = self:GetSize()
@@ -143,21 +171,46 @@ function Container:SaveState()
 end
 
 function Container:RestoreState()
-	db = self:GetDB() or defaults
+	local db = self:GetDB()
 	self:ClearAllPoints()
 
-	local frame = db[1] and Bagrealis.Containers[db[1]] or Bagrealis
-	Bagrealis.DragDrop.InsertIntoZone(self, frame)
-	self:SetParent(frame)
-	self:SetPoint("CENTER", frame, "TOPLEFT", db[2], db[3])
-	self:SetScale(db[4])
-	self:SetAlpha(db[5])
-	self:SetSize(db[6], db[7])
+	if(db) then
+		local frame = db[1] and Bagrealis.Containers[db[1]] or Bagrealis.MainFrame
+		Bagrealis.InsertIntoZone(self, frame)
+		self:SetParent(frame)
+		self:SetPoint("CENTER", frame, "TOPLEFT", db[2], db[3])
+		self:SetScale(db[4])
+		self:SetAlpha(db[5])
+		self:SetSize(db[6], db[7])
+	else
+		self:SetParent(Bagrealis.MainFrame)
+		self:SetPoint("CENTER", Bagrealis.MainFrame, "CENTER")
+		self:SetScale(1)
+		self:SetAlpha(1)
+		self:SetSize(100, 100)
+	end
+end
+
+function Container:MaximizeRestore()
+	self.maximized = not self.maximized
+	if(self.maximized) then
+		self:SetParent(Bagrealis.MainFrame)
+		self:SetFrameLevel(98)
+		Bagrealis.Anims.Show(self)
+		self:SetScale(1)
+		self:ClearAllPoints()
+		self:SetPoint("CENTER", UIParent, "CENTER")
+	else
+		self:RestoreState()
+	end
 end
 
 Container.DropDownEntries = {
 	{
 		text = "Remove Container",
 		func = function() Bagrealis.DropDown.Selected:Remove() end,
-	},
+	},{
+		text = "Maximize / restore",
+		func = function() Bagrealis.DropDown.Selected:MaximizeRestore() end,
+	}
 }

@@ -1,7 +1,7 @@
 local lib = LibStub:NewLibrary("LibDragDrop-1.0", 1)
 if(not lib) then return end
 
-local env = {}
+local env = {[lib] = {zones={}, objects={}}}
 local envByObj = {}
 local zonePerObj = {}
 local objPerZone = {}
@@ -15,8 +15,15 @@ function lib.RegisterEnvironment(id)
 	return env[id]
 end
 
-function lib.GetEnvironment(id)
-	return env[id]
+function lib:Embed(target)
+	for k,v in pairs(lib) do
+		target[k] = v
+	end
+	env[target] = {zones={}, objects={}}
+end
+
+function lib:GetEnvironment()
+	return env[self]
 end
 
 function lib.ChangeParent(region, target)
@@ -81,7 +88,7 @@ local function safeCall(tbl, func, ...)
 	return tbl[func] and tbl[func](tbl, ...)
 end
 
-function lib.OnMoveStart(object)
+function lib.Object_OnMoveStart(object)
 	local env = envByObj[object]
 	local active = zonePerObj[object]
 
@@ -95,13 +102,20 @@ function lib.OnMoveStart(object)
 	end
 end
 
-function lib.OnMoveStop(object)
+function lib.IsParentZone(object, zone)
+	local parent = zonePerObj[object]
+	return parent and (parent == zone or lib.IsParentZone(parent, zone))
+end
+
+function lib.Object_OnMoveStop(object)
 	local env = envByObj[object]
 	local aLevel, active = -1
 
+	gEnv = env
+
 	for zone in pairs(env.zones) do
 		safeCall(zone, "DragDrop_Stop", object)
-		if(zone ~= object and zone:IsVisible() and zone:GetFrameLevel() > aLevel and not(objPerZone[object] and objPerZone[object][zone]) and lib.IntersectsWith(object, zone)) then
+		if(zone ~= object and zone:IsVisible() and zone:GetFrameLevel() > aLevel and not lib.IsParentZone(zone, object) and lib.IntersectsWith(object, zone)) then
 			aLevel = zone:GetFrameLevel()
 			active = zone
 		end
@@ -114,13 +128,13 @@ function lib.OnMoveStop(object)
 end
 
 function lib:RegisterObject(object)
-	self.objects[object] = true
-	envByObj[object] = self
-	hooksecurefunc(object, "StartMoving", lib.OnMoveStart)
-	hooksecurefunc(object, "StopMovingOrSizing", lib.OnMoveStop)
+	env[self].objects[object] = true
+	envByObj[object] = env[self]
+	hooksecurefunc(object, "StartMoving", lib.Object_OnMoveStart)
+	hooksecurefunc(object, "StopMovingOrSizing", lib.Object_OnMoveStop)
 end
 
 function lib:RegisterZone(zone)
-	self.zones[zone] = true
+	env[self].zones[zone] = true
 	objPerZone[zone] = {}
 end
