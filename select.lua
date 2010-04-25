@@ -24,7 +24,8 @@ Bagrealis.Selector = select
 select.class = "Selector"
 select:Hide()
 
-local selectModifier = setmetatable(CreateFrame("Button", nil, Bagrealis.MainFrame), Bagrealis.DefaultButton)
+local selectModifier = CreateFrame("Button", nil, Bagrealis.MainFrame)
+Bagrealis:ImplementDefaultButton(selectModifier)
 select.Modifier = selectModifier
 selectModifier.class = "Selector"
 selectModifier:Hide()

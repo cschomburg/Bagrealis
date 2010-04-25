@@ -31,8 +31,8 @@ Config.MainFrame = {
 
 Config.Container = {
 	Backdrop = {
-		bgFile = [[Interface\AddOns\Bagrealis\textures\background]],
-		edgeFile = [[Interface\AddOns\Bagrealis\textures\border]],
+		bgFile = [[Interface\AddOns\cargBags_Bagrealis\textures\background]],
+		edgeFile = [[Interface\AddOns\cargBags_Bagrealis\textures\border]],
 		edgeSize = 10,
 		insets = {left = 5, right = 5, top = 5, bottom = 5}
 	},
@@ -59,8 +59,8 @@ Config.ItemButton = {
 
 Config.Selector = {
 	Backdrop = {
-		bgFile = [[Interface\AddOns\Bagrealis\textures\background]],
-		edgeFile = [[Interface\AddOns\Bagrealis\textures\border]],
+		bgFile = [[Interface\AddOns\cargBags_Bagrealis\textures\background]],
+		edgeFile = [[Interface\AddOns\cargBags_Bagrealis\textures\border]],
 		edgeSize = 2,
 		insets = {left = 2, right = 2, top = 2, bottom = 2}
 	},

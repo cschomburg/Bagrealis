@@ -17,11 +17,9 @@
     along with Bagrealis.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-local Bagrealis = Bagrealis
-
-local Container = setmetatable({}, Bagrealis.DefaultButton)
-Bagrealis.Container = Container
-Container.__index = Container
+local Bagrealis = cargBags:GetImplementation("Bagrealis")
+local Container = Bagrealis:GetContainerPrototype()
+Bagrealis:ImplementDefaultButton(Container)
 Container.class = "Container"
 
 local sizer = CreateFrame("Button", nil, Bagrealis.MainFrame)
@@ -112,37 +110,32 @@ end
 
 
 local tempContainers = {}
-function Container.Get(ident)
-	local container = tremove(tempContainers)
-
-	if(not container) then
-		local config = Container:GetConfig()
-
-		container = setmetatable(CreateFrame("Button"), Container)
-		container.ident = ident
-
-		container:SetMovable(true)
-		container:SetResizable(true)
-		container:SetClampedToScreen(true)
-		container:EnableMouseWheel(true)
-		container:SetScript("OnMouseDown", Container.OnMouseDown)
-		container:SetScript("OnMouseUp", Container.OnMouseUp)
-		container:SetScript("OnEnter", Container.OnEnter)
-		container:SetScript("OnLeave", Sizer_OnLeave)
-		container:SetScript("OnMouseWheel", Container.OnMouseWheel)
-
-		container:SetBackdrop(config.Backdrop)
-		container:SetBackdropColor(unpack(config.BackdropColor))
-		container:SetBackdropBorderColor(unpack(config.BorderColor))
-
-		Bagrealis:RegisterZone(container)
-		Bagrealis:RegisterObject(container)
-	end
-
+function Container:Get(ident)
+	local container = tremove(tempContainers) or Container:New(ident)
 	container.ident = ident
 	container:Show()
-
 	return container
+end
+
+function Container:OnCreate(ident)
+	local config = self:GetConfig()
+
+	self:SetMovable(true)
+	self:SetResizable(true)
+	self:SetClampedToScreen(true)
+	self:EnableMouseWheel(true)
+	self:SetScript("OnMouseDown", self.OnMouseDown)
+	self:SetScript("OnMouseUp", self.OnMouseUp)
+	self:SetScript("OnEnter", self.OnEnter)
+	self:SetScript("OnLeave", Sizer_OnLeave)
+	self:SetScript("OnMouseWheel", self.OnMouseWheel)
+
+	self:SetBackdrop(config.Backdrop)
+	self:SetBackdropColor(unpack(config.BackdropColor))
+	self:SetBackdropBorderColor(unpack(config.BorderColor))
+
+	Bagrealis:RegisterZone(self)
+	Bagrealis:RegisterObject(self)
 end
 
 function Container:Remove()
@@ -175,7 +168,7 @@ function Container:RestoreState()
 	self:ClearAllPoints()
 
 	if(db) then
-		local frame = db[1] and Bagrealis.Containers[db[1]] or Bagrealis.MainFrame
+		local frame = db[1] and Bagrealis.contByName[db[1]] or Bagrealis.MainFrame
 		Bagrealis.InsertIntoZone(self, frame)
 		self:SetParent(frame)
 		self:SetPoint("CENTER", frame, "TOPLEFT", db[2], db[3])

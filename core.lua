@@ -17,26 +17,17 @@
     along with Bagrealis.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-local Bagrealis = {}
+local Bagrealis = cargBags:NewImplementation("Bagrealis")
 LibStub("LibDragDrop-1.0"):Embed(Bagrealis)
+Bagrealis:RegisterBlizzard()
 
 Bagrealis.DummyFunction = function() end
 
-local containers = {}
-Bagrealis.Containers = containers
-
 local defaults = {__index={}}
-local bags = setmetatable({}, {__index = function(self, id) self[id] = {}; return self[id] end})
 
 local init = true
 local initCallbacks = {}
-function Bagrealis:Init()
-	init = nil
-
-	self.MainFrame:RegisterEvent"BAG_UPDATE"
-	self.MainFrame:RegisterEvent"ITEM_LOCK_CHANGED"
-	self.MainFrame:RegisterEvent"BAG_UPDATE_COOLDOWN"
-
+function Bagrealis:OnInit()
 	if(not BagrealisDB) then
 		self.Tutorial()
 	end
@@ -47,121 +38,37 @@ function Bagrealis:Init()
 
 	if(self.db.Container) then
 		for ident in pairs(self.db.Container) do
-			containers[ident] = self.Container.Get(ident)
+			self.contByName[ident] = self:GetContainerPrototype():Get(ident)
 		end
 	end
-	for ident, container in pairs(containers) do
+	for ident, container in pairs(self.contByName) do
 		container:RestoreState()
 	end
 
 	for k, func in pairs(initCallbacks) do
 		func(k)
 	end
-
-	Bagrealis:BAG_UPDATE()
 end
 
 function Bagrealis:RegisterInitCallback(k, func)
 	initCallbacks[k] = func
 end
 
-function Bagrealis:UpdateBag(bagID)
-	local bag = bags[bagID]
-
-	local num = GetContainerNumSlots(bagID)
-	local old = bag.num or 0
-	bag.num = num
-
-	for slotID = 1, num do
-		Bagrealis:UpdateSlot(bagID, slotID)
-	end
-	for slotID = num+1, old do
-		local button = bags[bagID][slotID]
-		bags[bagID][slotID] = nil
-		button:Remove()
-	end
-end
-
-function Bagrealis:BAG_UPDATE(event, bagID, slotID)
-	if(bagID == -4) then return end
-
-	if(bagID and slotID) then
-		Bagrealis:UpdateSlot(bagID, slotID)
-	elseif(bagID) then
-		Bagrealis:UpdateBag(bagID)
-	else
-		for bagID = -2, 11 do
-			Bagrealis:UpdateBag(bagID)
-		end
-	end
-end
-
-Bagrealis.ITEM_LOCK_CHANGED = Bagrealis.BAG_UPDATE
-Bagrealis.BAG_UPDATE_COOLDOWN = Bagrealis.BAG_UPDATE
-
-
 function Bagrealis:UpdateSlot(bagID, slotID)
-	local button = bags[bagID][slotID]
+	local item = self:GetItemInfo(bagID, slotID)
+	local button = self:GetButton(bagID, slotID)
 
-	local clink = GetContainerItemLink(bagID, slotID)
-	if(not clink) then
-		if(button) then
-			local button = bags[bagID][slotID]
-			bags[bagID][slotID] = nil
-			button:Remove()
+	if(item.texture) then
+		if(not button) then
+			button = self:GetItemButtonPrototype():New(bagID, slotID)
+			self:SetButton(bagID, slotID, button)
+			button:OnAdd()
 		end
-		return
-	end
-
-	local texture, count, locked, quality, readable = GetContainerItemInfo(bagID, slotID)
-	local cdStart, cdFinish, cdEnable = GetContainerItemCooldown(bagID, slotID)
-	local name, link, rarity, level, minLevel, type, subType, stackCount, equipLoc, texture = GetItemInfo(clink)
-
-	if(not button) then
-		button = Bagrealis.ItemButton.Get(bagID, slotID)
-		bags[bagID][slotID] = button
-	end
-
-	button.Icon:SetTexture(texture)
-
-	if(rarity and rarity > 1) then
-		button.Glow:SetVertexColor(GetItemQualityColor(rarity))
-		button.Glow:Show()
-	else
-		button.Glow:Hide()
-	end
-
-	if(count and count > 1) then
-		button.Count:SetText(count and count >= 1e3 and "*" or count)
-		button.Count:Show()
-	else
-		button.Count:Hide()
-	end
-
-	button.Icon:SetDesaturated(locked)
-	CooldownFrame_SetTimer(button.Cooldown, cdStart, cdFinish, cdEnable)
-end
-
-
-
-
-
-function Bagrealis.Open()
-	if(init) then
-		Bagrealis:Init()
-	end
-	Bagrealis.MainFrame:Show()
-end
-
-function Bagrealis.Close()
-	Bagrealis.MainFrame:Hide()
-end
-
-function Bagrealis.Toggle(forceopen)
-	if(Bagrealis.MainFrame:IsShown() and not forceopen) then
-		Bagrealis.Close()
-	else
-		Bagrealis.Open()
+		button:Update(item)
+	elseif(button) then
+		self:SetButton(bagID, slotID, nil)
+		button:Remove()
+		button:Free()
 	end
 end
 
@@ -169,7 +76,7 @@ function Bagrealis.CreateContainer()
 	local x, y = GetCursorPosition()
 	local eff = Bagrealis.MainFrame:GetEffectiveScale()
 
-	local container = Bagrealis.Container.Get(time())
+	local container = Bagrealis:GetContainerPrototype():Get(time())
 	container:RestoreState()
 	container:ClearAllPoints()
 	container:SetPoint("CENTER", Bagrealis.MainFrame, "BOTTOMLEFT", x/eff, y/eff)
@@ -221,12 +128,5 @@ SlashCmdList.BAGREALIS = function(msg)
 end
 SLASH_BAGREALIS1 = "/bagrealis"
 SLASH_BAGREALIS2 = "/bag"
-
-ToggleBackpack = Bagrealis.Toggle
-ToggleBag = function() Bagrealis.Toggle() end
-OpenAllBags = ToggleBag
-CloseAllBags = Bagrealis.Close
-OpenBackpack = Bagrealis.Open
-CloseBackpack = Bagrealis.Close
 
 getfenv(0).Bagrealis = Bagrealis

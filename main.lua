@@ -17,11 +17,9 @@
     along with Bagrealis.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-local Bagrealis = Bagrealis
+local Bagrealis = cargBags:GetImplementation("Bagrealis")
 
-local DefaultButton = CreateFrame"Button"
-DefaultButton.__index = DefaultButton
-Bagrealis.DefaultButton = DefaultButton
+local DefaultButton = {}
 
 function DefaultButton:GetDB(save)
 	local class, ident, db = self.class, self.ident, Bagrealis.db
@@ -56,20 +54,24 @@ function DefaultButton:DropDown()
 	Bagrealis.DropDown:Open(self)
 end
 
+function Bagrealis:ImplementDefaultButton(target)
+	for k,v in pairs(DefaultButton) do
+		target[k] = v
+	end
+end
 
 
 
 
 
-local MainFrame = setmetatable(CreateFrame("Button", "BagrealisMain", UIParent), DefaultButton)
+local MainFrame = CreateFrame("Button", "BagrealisMain", Bagrealis)
+Bagrealis:ImplementDefaultButton(MainFrame)
 Bagrealis.MainFrame = MainFrame
 MainFrame.class = "MainFrame"
 Bagrealis:RegisterZone(MainFrame)
 
-MainFrame:SetScript("OnEvent", function(self, event, ...) Bagrealis[event](self, event, ...) end)
-MainFrame:SetAllPoints(UIParent)
+MainFrame:SetAllPoints()
 MainFrame:EnableMouse(nil)
-MainFrame:Hide()
 
 MainFrame:SetScript("OnMouseDown", function(self, button)
 	local action = self:GetUserAction(button)

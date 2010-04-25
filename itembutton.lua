@@ -17,11 +17,9 @@
     along with Bagrealis.  If not, see <http://www.gnu.org/licenses/>.
 ]]
 
-local Bagrealis = Bagrealis
-
-local ItemButton = setmetatable({}, Bagrealis.DefaultButton)
-Bagrealis.ItemButton = ItemButton
-ItemButton.__index = ItemButton
+local Bagrealis = cargBags:GetImplementation("Bagrealis")
+local ItemButton = Bagrealis:GetItemButtonPrototype()
+Bagrealis:ImplementDefaultButton(ItemButton)
 ItemButton.class = "ItemButton"
 
 function ItemButton:OnDragStart()
@@ -67,7 +65,7 @@ function ItemButton:RestoreState()
 	self:ClearAllPoints()
 
 	if(db) then
-		local frame = db[1] and Bagrealis.Containers[db[1]] or Bagrealis.MainFrame
+		local frame = db[1] and Bagrealis.contByName[db[1]] or Bagrealis.MainFrame
 		Bagrealis.InsertIntoZone(self, frame)
 		self:SetParent(frame)
 		self:SetPoint("CENTER", frame, "TOPLEFT", db[2], db[3])
@@ -94,69 +92,29 @@ function ItemButton:OnEnter()
 	end
 end
 
-local slotsNum = 0
-function ItemButton.Create(tpl)
-	slotsNum = slotsNum+1
+function ItemButton:OnCreate(tpl)
+	Bagrealis:RegisterObject(self)
 
-	local button = setmetatable(CreateFrame("Button", "BagrealisSlot"..slotsNum, nil, tpl), ItemButton)
-	Bagrealis:RegisterObject(button)
+	self:SetMovable(true)
+	self:EnableMouseWheel(true)
 
-	button:SetWidth(37)
-	button:SetHeight(37)
-	button:SetMovable(true)
-	button:EnableMouseWheel(true)
-
-	button.Icon = _G["BagrealisSlot"..slotsNum.."IconTexture"]
-	button.Count = _G["BagrealisSlot"..slotsNum.."Count"]
-	button.Cooldown = _G["BagrealisSlot"..slotsNum.."Cooldown"]
-
-	local glow = button:CreateTexture(nil, "OVERLAY")
-	glow:SetTexture"Interface\\Buttons\\UI-ActionButton-Border"
-	glow:SetBlendMode"ADD"
-	glow:SetAlpha(.8)
-	glow:SetWidth(70)
-	glow:SetHeight(70)
-	glow:SetPoint("CENTER", button)
-	button.Glow = glow
-
-	button:SetScript("PreClick", ItemButton.SetBagID)
-	button:SetScript("OnDragStart", ItemButton.OnDragStart)
-	button:SetScript("OnDragStop", ItemButton.OnDragStop)
-	button:SetScript("OnEnter", ItemButton.OnEnter)
-	button:SetScript("OnReceiveDrag", Bagrealis.DummyFunction)
-	button:SetScript("OnMouseWheel", ItemButton.OnMouseWheel)
+	self:SetScript("PreClick", self.SetBagID)
+	self:SetScript("OnDragStart", self.OnDragStart)
+	self:SetScript("OnDragStop", self.OnDragStop)
+	self:SetScript("OnEnter", self.OnEnter)
+	self:SetScript("OnReceiveDrag", Bagrealis.DummyFunction)
+	self:SetScript("OnMouseWheel", self.OnMouseWheel)
 
 	return button
 end
 
-local recycled = {
-	ContainerFrameItemButtonTemplate = {},
-	BankItemButtonGenericTemplate = {},
-}
-
-local function getTemplateName(bagID)
-	return bagID == -1 and "BankItemButtonGenericTemplate" or "ContainerFrameItemButtonTemplate"
+function ItemButton:OnAdd()
+	self.ident = self.bagID*100 + self.slotID
+	self:RestoreState()
 end
 
-function ItemButton.Get(bagID, slotID)
-	local tpl = getTemplateName(bagID)
-	local button = tremove(recycled[tpl]) or ItemButton.Create(tpl)
-
-	button.bagID = bagID
-	button.ident = bagID*100 + slotID
-	button:SetID(slotID)
-	button:Show()
-	button:RestoreState()
-
-	return button
-end
-
-function ItemButton:Remove()
+function ItemButton:OnRemove()
 	Bagrealis.RemoveFromZone(self)
 	self:ClearDB()
-	self.id = nil
 	self.ident = nil
-	self:Hide()
-	local tpl = getTemplateName(bagID)
-	tinsert(recycled[tpl], button)
 end
